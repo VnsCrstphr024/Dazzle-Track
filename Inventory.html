@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory & QR Tracking</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #e0ddd2; 
+            --container-bg: #d4d0c1;
+            --inner-bg: #c9c5b7;
+            --border-color: #333;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Outside Pill Return Button */
+        .btn-main-return {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background-color: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+
+        .main-app {
+            width: 1000px;
+            background-color: var(--container-bg);
+            border-radius: 40px;
+            padding: 40px;
+            position: relative;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.05);
+        }
+
+        /* Header Alignment */
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .search-bar {
+            width: 350px;
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid #999;
+            background-color: #f0f0f0;
+            font-size: 14px;
+        }
+
+        .btn-action {
+            padding: 10px 25px;
+            border-radius: 25px;
+            border: 2px solid var(--border-color);
+            background: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-action:hover {
+            background: #eee;
+        }
+
+        /* Item Grid Area */
+        .item-grid-container {
+            background-color: var(--inner-bg);
+            border-radius: 25px;
+            padding: 25px;
+            height: 450px;
+            overflow-y: auto;
+            border: 1px solid #bbb;
+        }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+
+        .item-card {
+            background: #fff;
+            border: 1px solid #999;
+            position: relative;
+            aspect-ratio: 1/1.2;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .item-card:hover { transform: scale(1.02); }
+        .item-card img { width: 100%; height: 100%; object-fit: cover; }
+        .radio-select { position: absolute; top: 8px; left: 8px; z-index: 10; transform: scale(1.2); }
+
+        .card-label {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 5px;
+            background: rgba(255,255,255,0.9);
+            font-size: 11px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+        }
+
+        /* Modal Styles */
+        .modal-overlay, .qr-popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: var(--container-bg);
+            border: 2px solid var(--border-color);
+            padding: 30px;
+            width: 750px;
+            border-radius: 25px;
+            display: flex;
+            gap: 25px;
+        }
+
+        .image-side { width: 280px; }
+        .image-upload-box {
+            width: 100%;
+            height: 320px;
+            background: #f9f9f9;
+            border: 2px dashed #999;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .image-upload-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .form-fields { flex-grow: 1; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #999; box-sizing: border-box; }
+
+        .status-box {
+            background: #eee;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 13px;
+        }
+
+        .qr-popup-content {
+            background: white;
+            padding: 35px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        #qrOutputLarge { margin: 20px auto; }
+    </style>
+</head>
+<body>
+
+<button class="btn-main-return" onclick="window.location.href='Dashboard.html'">Back</button>
+
+<div class="main-app">
+    <div class="header">
+        <input type="text" id="searchInput" class="search-bar" placeholder="Search item code or type..." onkeyup="filterItems()">
+        
+        <button class="btn-action" onclick="openModal('add')">+ Add Item</button>
+        <button class="btn-action" onclick="openModal('edit')">Edit Item</button>
+    </div>
+
+    <div class="item-grid-container">
+        <div class="item-grid" id="itemGrid">
+            </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="image-side">
+                <div class="image-upload-box" onclick="document.getElementById('fileInput').click()">
+                    <span id="uploadText">Click to Upload</span>
+                    <img id="previewImg" src="" style="display:none">
+                </div>
+                <input type="file" id="fileInput" hidden accept="image/*" onchange="previewFile()">
+            </div>
+
+            <div class="form-fields">
+                <div class="form-group">
+                    <label>Item Code</label>
+                    <input type="text" id="itemCode" placeholder="Enter unique code">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="itemType">
+                        <option value="Gown">Gown</option>
+                        <option value="Wedding Gown">Wedding Gown</option>
+                        <option value="Suit">Suit</option>
+                        <option value="Dress">Dress</option>
+                        <option value="Accessories">Accessories</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <div class="form-group" style="flex:1;"><label>Size</label><input type="text" id="itemSize" placeholder="S/M/L"></div>
+                    <div class="form-group" style="flex:1;"><label>Color</label><input type="text" id="itemColor" placeholder="Red, Blue..."></div>
+                </div>
+                
+                <div class="status-box">
+                    <label><input type="radio" name="status" value="Available" checked> <span style="color: green;">Available</span></label>
+                    <label><input type="radio" name="status" value="Rented"> <span style="color: red;">Rented</span></label>
+                    <label><input type="radio" name="status" value="Refurbishing"> <span style="color: #b8860b;">Refurbishing</span></label>
+                </div>
+
+                <div id="modalFooter" style="margin-top:25px; display:flex; justify-content:flex-end; gap:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="qr-popup-overlay" id="qrPopup">
+        <div class="qr-popup-content">
+            <h2 style="margin:0;">Item QR Code</h2>
+            <div id="qrOutputLarge"></div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn-action" onclick="downloadQR()">Download</button>
+                <button class="btn-action" onclick="closeQrPopup()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let inventory = [];
+    let editIndex = null;
+
+    function renderGrid(list = inventory) {
+        const grid = document.getElementById('itemGrid');
+        grid.innerHTML = '';
+        list.forEach((item, index) => {
+            grid.innerHTML += `
+                <div class="item-card" onclick="this.querySelector('input').checked = true">
+                    <input type="radio" name="selectItem" class="radio-select" value="${index}">
+                    <img src="${item.image || 'https://via.placeholder.com/150'}">
+                    <div class="card-label">
+                        <b>${item.code}</b><br>${item.type}
+                    </div>
+                </div>`;
+        });
+    }
+
+    function openModal(mode) {
+        const footer = document.getElementById('modalFooter');
+        footer.innerHTML = '';
+
+        if (mode === 'edit') {
+            const selected = document.querySelector('input[name="selectItem"]:checked');
+            if (!selected) return alert("Select an item first.");
+            editIndex = parseInt(selected.value);
+            fillModal(inventory[editIndex]);
+            footer.innerHTML = `
+                <button class="btn-action" style="border-color:red; color:red;" onclick="deleteItem()">Delete</button>
+                <button class="btn-action" onclick="generateQR()">Generate QR</button>
+                <button class="btn-action" onclick="saveItem()">Update</button>
+                <button class="btn-action" onclick="closeModal()">Cancel</button>`;
+        } else {
+            editIndex = null;
+            clearModal();
+            footer.innerHTML = `
+                <button class="btn-action" onclick="saveItem()">Save Item</button>
+                <button class="btn-action" onclick="closeModal()">Close</button>`;
+        }
+        document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function saveItem() {
+        const code = document.getElementById('itemCode').value;
+        if (!code) return alert("Code is required.");
+        const item = {
+            code: code,
+            type: document.getElementById('itemType').value,
+            size: document.getElementById('itemSize').value,
+            color: document.getElementById('itemColor').value,
+            status: document.querySelector('input[name="status"]:checked').value,
+            image: document.getElementById('previewImg').src
+        };
+        if (editIndex !== null) inventory[editIndex] = item;
+        else inventory.push(item);
+        renderGrid();
+        closeModal();
+    }
+
+    function generateQR() {
+        const item = inventory[editIndex];
+        const qrData = `ITEM DETAILS\nCode: ${item.code}\nCategory: ${item.type}\nSize: ${item.size}\nColor: ${item.color}\nStatus: ${item.status}`;
+        const qrContainer = document.getElementById('qrOutputLarge');
+        qrContainer.innerHTML = ""; 
+        new QRCode(qrContainer, { text: qrData, width: 250, height: 250 });
+        document.getElementById('qrPopup').style.display = 'flex';
+    }
+
+    function previewFile() {
+        const file = document.getElementById('fileInput').files[0];
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const preview = document.getElementById('previewImg');
+            preview.src = reader.result;
+            preview.style.display = 'block';
+            document.getElementById('uploadText').style.display = 'none';
+        }
+        if (file) reader.readAsDataURL(file);
+    }
+
+    function fillModal(data) {
+        document.getElementById('itemCode').value = data.code;
+        document.getElementById('itemType').value = data.type;
+        document.getElementById('itemSize').value = data.size;
+        document.getElementById('itemColor').value = data.color;
+        if(data.image && data.image.startsWith('data:image')) {
+            document.getElementById('previewImg').src = data.image;
+            document.getElementById('previewImg').style.display = 'block';
+            document.getElementById('uploadText').style.display = 'none';
+        } else {
+            document.getElementById('previewImg').style.display = 'none';
+            document.getElementById('uploadText').style.display = 'block';
+        }
+        document.querySelector(`input[name="status"][value="${data.status}"]`).checked = true;
+    }
+
+    function clearModal() {
+        document.getElementById('itemCode').value = '';
+        document.getElementById('previewImg').style.display = 'none';
+        document.getElementById('uploadText').style.display = 'block';
+        document.getElementById('fileInput').value = '';
+    }
+
+    function deleteItem() {
+        if (confirm("Delete this item permanently?")) {
+            inventory.splice(editIndex, 1);
+            renderGrid();
+            closeModal();
+        }
+    }
+
+    function filterItems() {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = inventory.filter(i => i.type.toLowerCase().includes(term) || i.code.toLowerCase().includes(term));
+        renderGrid(filtered);
+    }
+
+    function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+    function closeQrPopup() { document.getElementById('qrPopup').style.display = 'none'; }
+    function downloadQR() {
+        const canvas = document.querySelector('#qrOutputLarge canvas');
+        const link = document.createElement('a');
+        link.download = `QR_${document.getElementById('itemCode').value}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+</script>
+</body>
+</html>

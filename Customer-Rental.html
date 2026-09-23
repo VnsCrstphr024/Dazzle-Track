@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dazzle-Track Management</title>
+    <style>
+        :root {
+            --bg-page: #e8e6dc;
+            --container-bg: #d9d6c8;
+            --header-white: #f9f9f7;
+            --input-bg: #e1dfd5;
+            --modal-bg: #c9c6ba;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-page);
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0;
+        }
+
+        /* Home Button (Top-Left Arrow) */
+        .btn-main-return {
+            position: absolute; top: 20px; left: 20px;
+            background: #eee; border: 2px solid #000; border-radius: 50px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+        .btn-main-return::after { 
+            content: "Back"; font-size: 15px; font-weight: bold;; 
+        }
+
+        .main-wrapper {
+            background-color: var(--container-bg);
+            width: 85%; max-width: 1100px; padding: 40px;
+            border-radius: 50px; box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            display: flex; flex-direction: column; height: 80vh;
+        }
+
+        .toolbar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 25px; }
+
+        .search-container {
+            display: flex; align-items: center;
+            background: var(--input-bg); border: 1px solid #bcbaaf;
+            border-radius: 25px; padding: 5px 15px;
+        }
+        .search-container input { border: none; background: transparent; outline: none; width: 150px; }
+        
+        .spyglass-btn { cursor: pointer; user-select: none; transition: transform 0.1s; }
+        .spyglass-btn:active { transform: scale(0.9); }
+
+        .action-btn {
+            background-color: var(--header-white); border: 1px solid #000;
+            border-radius: 20px; padding: 8px 20px; font-weight: 600; cursor: pointer;
+        }
+
+        .table-header-pill {
+            background-color: var(--header-white); border-radius: 20px;
+            display: grid; grid-template-columns: 50px 2fr 1.5fr 1fr 1.5fr 1fr;
+            padding: 15px 10px; font-weight: bold; margin-bottom: 10px; text-align: center;
+        }
+
+        #listBody { flex-grow: 1; overflow-y: auto; }
+
+        .customer-row {
+            display: grid; grid-template-columns: 50px 2fr 1.5fr 1fr 1.5fr 1fr;
+            padding: 15px 10px; text-align: center; border-bottom: 1px solid #bcbaaf; align-items: center;
+        }
+
+        #modalOverlay {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.2); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background-color: var(--modal-bg); padding: 40px; border-radius: 40px;
+            width: 600px; border: 1px solid #999;
+        }
+
+        .form-line { display: flex; align-items: center; margin-bottom: 15px; }
+        .form-line label { width: 100px; font-weight: bold; }
+        .form-line input[type="text"] { flex: 1; padding: 10px; border-radius: 15px; border: 1px solid #888; background: #e5e2d9; }
+
+        .date-selectors { display: flex; gap: 8px; align-items: center; }
+        .date-selectors select { padding: 8px; border-radius: 8px; border: 1px solid #888; background: #e5e2d9; }
+
+        .status-section { margin-top: 10px; }
+        .status-toggle {
+            background: #bcbab0; padding: 10px 20px; border-radius: 20px;
+            border: 1px solid #999; display: flex; gap: 20px; width: fit-content;
+        }
+        .cleared-txt { color: #27ae60; font-weight: bold; }
+        .renting-txt { color: #e74c3c; font-weight: bold; }
+
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; }
+    </style>
+</head>
+<body>
+
+<button class="btn-main-return" onclick="window.location.href='Dashboard.html'"></button>
+
+<div class="main-wrapper">
+    <div class="toolbar">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search name..." onkeyup="if(event.key==='Enter') render()">
+            <span class="spyglass-btn" onclick="render()">🔍</span>
+        </div>
+        <button class="action-btn" onclick="openModal(false)">+ Add Customer</button>
+        <button class="action-btn" onclick="editSelected()">Edit</button>
+    </div>
+
+    <div class="table-header-pill">
+        <span></span> <span>Customer Name</span>
+        <span>Contact No.</span>
+        <span>Item</span>
+        <span>Date</span>
+        <span>Status</span>
+    </div>
+
+    <div id="listBody"></div>
+</div>
+
+<div id="modalOverlay">
+    <div class="modal-content">
+        <div class="form-line"><label>Name:</label><input type="text" id="inName"></div>
+        <div class="form-line"><label>Contact:</label><input type="text" id="inContact"></div>
+        <div class="form-line"><label>Item:</label><input type="text" id="inItem"></div>
+        <div class="form-line">
+            <label>Date:</label>
+            <div class="date-selectors">
+                <select id="m1"><option disabled selected>Month</option></select>
+                <select id="d1"><option disabled selected>Day</option></select>
+                <select id="y1"><option disabled selected>Year</option></select>
+                <span style="font-weight:bold">/</span>
+                <select id="m2"><option disabled selected>Month</option></select>
+                <select id="d2"><option disabled selected>Day</option></select>
+                <select id="y2"><option disabled selected>Year</option></select>
+            </div>
+        </div>
+        <div class="status-section">
+            <label style="font-weight:bold">Status:</label>
+            <div class="status-toggle">
+                <label class="cleared-txt"><input type="radio" name="stat" value="Cleared"> Cleared</label>
+                <label class="renting-txt"><input type="radio" name="stat" value="Renting"> Renting</label>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button class="action-btn" onclick="saveEntry()" style="background: white;">Save</button>
+            <button id="dynamicBtn" class="action-btn" onclick="handleDynamicBtn()"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let entries = [];
+    let filteredEntries = [];
+    let editingIndex = -1;
+
+    function initSelectors() {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const selects = [['m1', 'm2'], ['d1', 'd2'], ['y1', 'y2']];
+        selects[0].forEach(id => months.forEach(m => document.getElementById(id).add(new Option(m, m))));
+        selects[1].forEach(id => { for(let i=1; i<=31; i++) document.getElementById(id).add(new Option(i, i)); });
+        selects[2].forEach(id => { for(let i=2024; i<=2030; i++) document.getElementById(id).add(new Option(i, i)); });
+    }
+
+    function openModal(isEdit) {
+        const btn = document.getElementById('dynamicBtn');
+        if (isEdit) {
+            btn.innerText = "Delete";
+            btn.style.background = "#ffdbdb";
+        } else {
+            editingIndex = -1;
+            resetForm();
+            btn.innerText = "Return";
+            btn.style.background = "#f0f0f0";
+        }
+        document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function handleDynamicBtn() {
+        if (document.getElementById('dynamicBtn').innerText === "Delete") deleteEntry();
+        else closeModal();
+    }
+
+    function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+    function resetForm() {
+        document.getElementById('inName').value = "";
+        document.getElementById('inContact').value = "";
+        document.getElementById('inItem').value = "";
+        document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+        document.querySelectorAll('input[name="stat"]').forEach(r => r.checked = false);
+    }
+
+    function saveEntry() {
+        const name = document.getElementById('inName').value;
+        const status = document.querySelector('input[name="stat"]:checked');
+        if(!name || !status) return alert("Please fill Name and Status");
+
+        const dateRange = `${document.getElementById('m1').value} ${document.getElementById('d1').value} - ${document.getElementById('m2').value} ${document.getElementById('d2').value}`;
+        const obj = { name, contact: document.getElementById('inContact').value, item: document.getElementById('inItem').value, date: dateRange, status: status.value };
+
+        if(editingIndex > -1) {
+            const originalIndex = entries.indexOf(filteredEntries[editingIndex]);
+            entries[originalIndex] = obj;
+        } else {
+            entries.push(obj);
+        }
+        render();
+        closeModal();
+    }
+
+    function render() {
+        const body = document.getElementById('listBody');
+        const filter = document.getElementById('searchInput').value.toLowerCase();
+        body.innerHTML = "";
+        
+        filteredEntries = entries.filter(en => en.name.toLowerCase().includes(filter));
+
+        filteredEntries.forEach((en, i) => {
+            body.innerHTML += `
+                <div class="customer-row">
+                    <input type="radio" name="rowSelect" value="${i}">
+                    <span>${en.name}</span>
+                    <span>${en.contact}</span>
+                    <span>${en.item}</span>
+                    <span>${en.date}</span>
+                    <span class="${en.status === 'Cleared' ? 'cleared-txt' : 'renting-txt'}">${en.status}</span>
+                </div>`;
+        });
+    }
+
+    function editSelected() {
+        const selected = document.querySelector('input[name="rowSelect"]:checked');
+        if(!selected) return alert("Select a customer");
+        editingIndex = selected.value;
+        const data = filteredEntries[editingIndex];
+        document.getElementById('inName').value = data.name;
+        document.getElementById('inContact').value = data.contact;
+        document.getElementById('inItem').value = data.item;
+        document.querySelectorAll('input[name="stat"]').forEach(r => { if(r.value === data.status) r.checked = true; });
+        openModal(true);
+    }
+
+    function deleteEntry() {
+        if(editingIndex > -1) {
+            const originalIndex = entries.indexOf(filteredEntries[editingIndex]);
+            entries.splice(originalIndex, 1);
+            render();
+            closeModal();
+        }
+    }
+
+    window.onload = initSelectors;
+</script>
+</body>
+</html>

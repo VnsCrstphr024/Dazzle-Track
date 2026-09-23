@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dazzle-Track Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>      
+        /* Header Styles */
+        .header {
+            background-color: #e3dac5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 40px;
+            border-bottom: 1px solid #bab09f;
+        }
+
+        .header-left img { height: 100px; width: auto; } /* Adjusted height for better fit */
+
+        .header-center h1 {
+            font-family: 'Dancing Script', cursive !important;
+            font-size: 4rem !important;
+            font-weight: 700 !important;
+            color: #000;
+            margin: 0;
+        }
+
+        .header-right { display: flex; gap: 12px; align-items: center; }
+
+        .icon-circle {
+            width: 45px; height: 45px;
+            background-color: #bcbbb5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .profile-icon { background-color: #000 !important; }
+        .profile-icon img { filter: invert(1); }
+
+        /* Dashboard Grid - Fixed Alignment */
+        .dashboard-grid {
+            display: flex;
+            justify-content: center; /* Centers the cards horizontally */
+            align-items: center;     /* Aligns them in a straight line */
+            gap: 80px;               /* Spacing between cards */
+            padding: 80px 20px;
+            flex-wrap: wrap;
+        }
+
+        /* Base Card Style */
+        .yellow-card {
+            background-color: #d0bf89;
+            width: 200px;
+            height: 320px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+            border: 2px solid #292721;
+            position: relative; 
+            overflow: hidden; 
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .yellow-card:hover { transform: translateY(-10px); }
+
+        .card-image-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .card-label {
+            position: relative;
+            z-index: 2; 
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            height: 100%;
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+            color: #000;
+            /* Text shadow helps readability against various image backgrounds */
+            text-shadow: 0px 0px 8px rgba(255, 255, 255, 0.9); 
+        }
+
+        /* Dropdown */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background-color: #242526;
+            min-width: 200px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            z-index: 1000;
+            padding: 10px;
+        }
+
+        .show { display: block !important; }
+    </style>
+</head>
+<body style="background-color: #e5ddd2; margin: 0;">
+
+    <header class="header">
+        <div class="header-left">
+            <img src="Dazzle-Logo.png" alt="Logo">
+        </div>
+        <div class="header-center">
+            <h1>Dazzle-Track</h1>
+        </div>
+        <div class="header-right">
+            <div class="icon-circle" title="Notifications"><img src="bell.png" alt="Notifications" style="width:25px;"></div>
+            <div class="icon-circle profile-icon" onclick="toggleMenu('profileDropdown')" title="Profile">
+                <img src="profile.png" alt="Profile" style="width:25px;">
+                <div id="profileDropdown" class="dropdown-content">
+                    <div class="dropdown-header"><strong id="user-display-name" style="color:white;">Loading...</strong></div>
+                    <a href="#" style="color:white; text-decoration:none; display:block; padding:5px 0;">Profile</a>
+                    <a href="Login-Page.html" style="color: red; text-decoration:none; display:block; padding:5px 0;">Log out</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <div class="yellow-card" onclick="window.location.href='Customer-Rental.html'">
+            <img src="Customer-Rental.png" class="card-image-bg" alt="Portal Background">
+            <div class="card-label">Customer & Rental Management</div>
+        </div>
+
+        <div class="yellow-card" onclick="window.location.href='Inventory.html'">
+            <img src="Inventory-QR.png" class="card-image-bg" alt="Inventory Background">
+            <div class="card-label">Inventory & QR Tracking</div>
+        </div>
+
+        <div class="yellow-card" onclick="window.location.href='Notifications.html'">
+            <div class="card-label">Return Notification</div>
+        </div>
+    </main>
+
+    <script>
+        function toggleMenu(id) {
+            document.getElementById(id).classList.toggle("show");
+        }
+
+        window.onload = function() {
+            document.getElementById('user-display-name').innerText = "Admin User";
+        };
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.icon-circle')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
